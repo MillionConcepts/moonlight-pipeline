@@ -1,4 +1,3 @@
-from astropy.io import fits
 from pathlib import Path
 import numpy as np
 from typing import Optional
@@ -64,8 +63,10 @@ def get_shadowing_from_lab_flat(
     # surface here.
     if mode == 'G':
         include = 1
-    if mode == 'T':
+    elif mode == 'T':
         include = 2
+    else:
+        include = 1
     flat_surface[:, 0:include] = flat[:, left_cutoff:left_cutoff+include]
     flat_surface[:, -include:] = flat[:, right_cutoff - include:right_cutoff]
 
@@ -91,29 +92,6 @@ def fix_flagged_in_lab_flat(flat_path: Path, bde_path: Path):
     mod_flat = bde_correction(flat, bde_path)
 
     return mod_flat
-
-
-def average_over_lines(paths):
-    """
-    Average one (or multiple) observations across lines, keeping sample / band
-    structure.
-    """
-    image_sum = None
-
-    for path in paths:
-        with fits.open(path, memmap=True) as hdul:
-            # TODO: update this depending on how we decide to save outputs?
-            # or just add a check on the shape. ideally our new fits files
-            # indicate line / band axes etc
-            cube = hdul[0].data
-            n_bands, n_lines, n_samples = cube.shape
-            if image_sum is None:
-                image_sum = np.zeros((n_bands, n_samples))
-            elif image_sum.shape != (n_bands, n_samples):
-                raise ValueError(f"{path} has a different shape :(")
-            for band in range(n_bands):
-                image_sum[band] += np.sum(cube[band], axis=0)
-    return image_sum / n_lines
 
 
 def normalize_to_center(flat, n_center=40):
@@ -172,43 +150,6 @@ def fit_surface(flat,
             break
         good = new_good
     return model.reshape(n_bands, n_samples)
-
-
-def make_flat_field_from_paths(paths, n_center=40) -> np.ndarray:
-    """
-    Make an image-based flat field as described in Green 2011.
-
-    Rough steps from Green 2011:
-        1) averaging the longest on orbit data
-        sets and then dividing by the average of the central 40 cross-track
-        sample values.
-        2) a two‐dimensional surface is fit to the image based flat field and
-         removed from the flat field correction factor.
-            * don't think factor is supposed to be single value,
-                but who knows...
-        3) to suppress the impact of major features in the image‐based flat
-        field on the resulting illuminated lunar surface images, a smoothed
-        spectral average is divided out in a final flat field.
-
-    This function can take in multiple observations to use for making flats,
-    instead of just one as described by Green.
-    """
-    if isinstance(paths, str):
-        paths = [paths]
-
-    # 1) average data & normalize
-    line_average = average_over_lines(paths)
-    flat = normalize_to_center(line_average, n_center)
-
-    # 2) 2d surface removal
-    surface = fit_surface(flat)
-    flat = flat / surface
-
-    # 3) divide out spectral average
-    flat = flat / np.nanmedian(flat, axis=0, keepdims=True)
-
-    # repeat 1b
-    return normalize_to_center(flat, n_center)
 
 
 def make_flat_field_from_obs(
@@ -353,9 +294,9 @@ def make_flat_field_from_obs_with_masking(
         left_col_cutoff: int,
         right_col_cutoff: int,
         flag_path: Path,
-        extra_flag_path: Path = None,
-        ignored_flag_cols: list[int] = None,
-        ignored_flag_rows: list[int] = None,
+        extra_flag_path: Path | None = None,
+        ignored_flag_cols: list[int] | None = None,
+        ignored_flag_rows: list[int] | None = None,
         n_center=40,
 ) -> np.ndarray:
     """

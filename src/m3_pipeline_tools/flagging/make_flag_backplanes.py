@@ -1,4 +1,8 @@
-"""Functions to combine various flags into backplanes."""
+"""
+Functions to combine various flags into backplanes. Separate processes
+required for flagging from L1B data and flagging for new L0 to L1B pipeline
+outputs.
+"""
 
 import numpy as np
 from pathlib import Path
@@ -100,7 +104,6 @@ def flag_l1b(
         omitted_channels: list[int],
         left_col_cutoff: int,
         right_col_cutoff: int,
-        reverse_lines: bool,
         reverse_samples: bool,
         bad_col_groups: dict,
         l1b_samples: int,
@@ -256,7 +259,6 @@ def make_mission_l1b_flag_backplane(
         omitted_channels=moonager.omitted_channels,
         left_col_cutoff=moonager.left_col_cutoff,
         right_col_cutoff=moonager.right_col_cutoff,
-        reverse_lines=moonager.reverse_lines,
         reverse_samples=moonager.reverse_samples,
         bad_col_groups=moonager.flicker_col_groups,
         l1b_samples=moonager.l1b_samples,

@@ -133,9 +133,9 @@ would also be slower on target with more columns to loop over.
 def bde_correction(
         obs_image: np.ndarray,
         bde_path: Path,
-        extra_bde_path: Path = None,
-        ignore_bands: Optional[list[int]] = None,
-        ignore_cols: Optional[list[int]] = None,
+        extra_bde_path: Path | None = None,
+        ignore_bands: list[int] | None = None,
+        ignore_cols: list[int] | None= None,
 ):
     """
     Interpolate flagged samples linearly in the spectral direction.
@@ -161,7 +161,7 @@ def bde_correction(
     from ..utils.loader import load_bde_map
 
     bde_map = load_bde_map(flag_path=bde_path,
-                           additional_flag_path=extra_bde_path
+                           extra_flag_path=extra_bde_path
                            )
     check_shape(obs_image.shape, bde_map.shape)
 
@@ -195,7 +195,7 @@ def bde_correction(
         # get all good rows
         good_in_col.append(np.where(~bad_mask[:, c] & ~ignored[:, c])[0])
 
-    # find closest good pixels
+    # find the closest good pixels
     for i, (r, c) in enumerate(zip(bad_rows, bad_cols)):
         g = good_in_col[c]
         if g.size == 0:

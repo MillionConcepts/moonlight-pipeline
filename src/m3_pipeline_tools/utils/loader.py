@@ -81,6 +81,10 @@ def orient_and_trim_to_l1b(
         reverse_samples: bool = False,
         omitted_channels: list[int] | None = None,
 ):
+    """
+    Trim an L0 shape obs to L1B shape, reorient lines & samples based on label
+    info to match mission output.
+    """
     if input_array.ndim == 2:
         # bands x samples
         input_array = input_array[:, left_col_cutoff:right_col_cutoff]
