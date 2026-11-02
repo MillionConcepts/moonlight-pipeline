@@ -470,9 +470,9 @@ def run_l1b_new_pipeline(moonager: PipeManager):
         if moonager.verbose:
             print("Making flag backplane.")
         flag_backplane = make_flag_backplane(
-            flag_path=moonager.flag_path,
             flags=flicker_map,
             obs_image=obs_image,
+            flag_path=moonager.flag_path,
             deprecated_channels=moonager.degraded_channels,
             omitted_channels=moonager.omitted_channels,
             extra_flag_path=moonager.additional_flag_path,

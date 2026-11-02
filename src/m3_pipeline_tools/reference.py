@@ -276,11 +276,11 @@ class PipeManager:
             self.filter_seam_rows = [40, 41, 39, 115, 116, 114]
             # for L2
             self.degraded_channels = [0, 1, 2, 3, 4, 5, 6, 7, 255]
-            # bad /variable column groups (1 indexed)
+            # bad / variable column groups (0-indexed, L0 orientation)
             self.flicker_col_groups = {
-                'group1': np.array([74, 138, 170, 234, 298, 330, 394, 458, 490,
-                                    554, 618]),
-                'group2': np.array([42, 106, 202, 266, 362, 426, 522, 586]),
+                'group1': np.array([73, 137, 169, 233, 297, 329, 393, 457, 489,
+                                    553, 617]),
+                'group2': np.array([41, 105, 201, 265, 361, 425, 521, 585]),
             }
             self.l0_flicker_bands = slice(6,8)
             self.l1b_flicker_bands = slice(3,5)
@@ -306,11 +306,11 @@ class PipeManager:
             self.filter_seam_rows = [12, 49]
             # for L2
             self.degraded_channels = [0, 1]
-            # bad /variable column groups (1 indexed)
+            # bad / variable column groups (0 indexed, L0 orientation)
             self.flicker_col_groups = {
-                'group1': np.array([310, 278, 246, 230, 198, 166, 150, 118, 86,
-                                    70, 38, 6]),
-                'group2': np.array([294, 262, 214, 182, 134, 102, 54, 22]),
+                'group1': np.array([309, 277, 245, 229, 197, 165, 149, 117, 85,
+                                    69, 37, 5]),
+                'group2': np.array([293, 261, 213, 181, 133, 101, 53, 21]),
             }
             self.l0_flicker_bands = slice(2,3)
             self.l1b_flicker_bands = slice(1,2)

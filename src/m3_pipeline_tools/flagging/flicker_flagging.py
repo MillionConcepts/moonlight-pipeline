@@ -29,8 +29,8 @@ def transform_bad_column_groups(
     """
     l1b_bad_col_groups = {}
     for key, idx in bad_col_groups.items():
-        # trim to L1B width
-        idx = np.asarray(idx) - left_col_cutoff - 1
+        # trim to l1b width
+        idx = np.asarray(idx) - left_col_cutoff
         # flip if reverse_samples is True
         if reverse_samples:
             idx = l1b_samples - 1 - idx

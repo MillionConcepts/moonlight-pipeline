@@ -94,7 +94,7 @@ def make_flag_backplane(
         # because flags is in L0 dimensions but the deprecated channels list
         # are in L1B dimensions, we have to add an offset so the indices are
         # correct
-        flags[:, [c + max(omitted_channels) for c in deprecated_channels], :]\
+        flags[:, [c + max(omitted_channels) + 1 for c in deprecated_channels], :]\
             |= L2_DEPRECATED
     return flags
 
