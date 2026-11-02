@@ -39,11 +39,11 @@ More comprehensive documentation for Moonlight Pipeline is forthcoming with the
 release of L1B and L2 processing pipelines.
 
 ## Storage & Required Files
-The Moonlight Pipeline repository is designed to work with the PDS4 release of M3 data,
+The Moonlight Pipeline repository is designed to work with the [PDS4 release of M3 data](https://pdsimage2.wr.usgs.gov/Chandrayaan_1/),
 where most observational and calibration data were delivered as FITS files. All files 
 required to run the pipelines are available at the PDS. 
 
-Some information from the PDS has been compiled for ease of use and is stored in the cal folder: 
+Some metadata from the PDS has been compiled for ease of use and is stored in the cal folder: 
 [cal_data folder](./src/m3_pipeline_tools/cal_data/). See the [cal_data README](./src/m3_pipeline_tools/cal_data/README.md) for more information.
 
 Required files for flagging are discussed in [Comprehensive Flagging](./tutorials/tutorial3_comprehensive_flagging.ipynb).
