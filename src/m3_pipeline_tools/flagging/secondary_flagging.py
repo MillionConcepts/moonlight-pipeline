@@ -18,41 +18,41 @@ def neighbor_diff(
     return image - neighbor
 
 
-def flag_by_std(diff_image: np.ndarray, sigma: float):
+def flag_by_std(diff_image: np.ndarray, std_multiplier: float):
     """
     Flag all pixels in band col difference image based on median + sigma
     threshold.
     """
     std = abs(np.std(diff_image))
     median = abs(np.median(diff_image))
-    flagged_pixels = abs(diff_image) > (median + std * sigma)
+    flagged_pixels = abs(diff_image) > (median + std * std_multiplier)
     return flagged_pixels.astype(int)
 
 
 def flag_side(
         obs_band: np.ndarray,
-        sigma: float,
+        std_multiplier: float,
         side: Literal["left", "right"]
 ):
     """ Call neighbor diff and run flagging. """
     oneway = neighbor_diff(obs_band, side=side)
-    return flag_by_std(oneway, sigma)
+    return flag_by_std(oneway, std_multiplier)
 
 
-def combo_side_flags(obs_band: np.ndarray, sigma: float):
+def combo_side_flags(obs_band: np.ndarray, std_multiplier: float):
     """
     Get flags for left col subtraction and right col subtraction, then combine.
     """
     # left side
-    flagged_left = flag_side(obs_band, sigma, "left")
+    flagged_left = flag_side(obs_band, std_multiplier, "left")
     # right side
-    flagged_right = flag_side(obs_band, sigma, "right")
+    flagged_right = flag_side(obs_band, std_multiplier, "right")
     return flagged_left + flagged_right
 
 
 def flag_whole_cols(
         obs_band: np.ndarray,
-        sigma: float,
+        std_multiplier: float,
         flag_col_ratio: float,
         band: int,
 ):
@@ -60,11 +60,11 @@ def flag_whole_cols(
     Returns indices of columns for a single band that are 'bad' for a specified
     minimum percentage of the column (60-70% is a good setting I think). 'Bad'
     means offset from the left and right columns by more than the median plus a
-    specified sigma.
+    specified std_multiplier.
 
     (>60% of pixels) offset by more than median diffs + .5 std of image diffs
     """
-    combo_flags = combo_side_flags(obs_band, sigma)
+    combo_flags = combo_side_flags(obs_band, std_multiplier)
     counts_per_col = combo_flags.sum(axis=0)
     image_len = obs_band.shape[0]
     # percent of col that is flagged
@@ -83,7 +83,7 @@ def flag_whole_cols(
 
 def build_bad_col_map(
         obs_image: np.ndarray,
-        sigma: float = .5,
+        std_multiplier: float = .5,
         flag_col_ratio: float = .6
 ):
     """
@@ -92,7 +92,7 @@ def build_bad_col_map(
 
     Args:
         obs_image: Obs image data, could be rdn or DN.
-        sigma: Sigma for threshold at which to flag.
+        std_multiplier: Multiplier with std for threshold at which to flag.
         flag_col_ratio: What ratio of pixels in a col should be flagged before
             the col is flagged.
     """
@@ -101,7 +101,7 @@ def build_bad_col_map(
     for band in range(bands):
         indices, ratios = flag_whole_cols(
             obs_image[:, band, :],
-            sigma,
+            std_multiplier,
             flag_col_ratio,
             band
         )
