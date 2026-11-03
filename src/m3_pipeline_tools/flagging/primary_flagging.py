@@ -45,7 +45,7 @@ def build_bde_mask(
     # crop beginning and end of loaded dark
     dark = load_fits_into_frame(dark_path)[1: -1, :, :]
     # remove -2 rollover values bc they mess with the stats
-    dark[dark < 0.0] = np.nan
+    dark[dark <= 0.0] = np.nan
 
     # DPSIS says they used mean not median
     mean = np.nanmean(dark, axis=0)
