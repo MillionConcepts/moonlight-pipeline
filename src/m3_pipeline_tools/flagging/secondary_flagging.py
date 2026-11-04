@@ -15,7 +15,11 @@ def neighbor_diff(
     """
     shift = 1 if side == "left" else -1
     neighbor = np.roll(image, shift, axis=axis)
-    return image - neighbor
+    diff = image - neighbor
+    # np.roll wraps around. we don't want that. zero it out instead.
+    edge = 0 if side == "left" else -1
+    np.moveaxis(diff, axis, 0)[edge] = 0
+    return diff
 
 
 def flag_by_std(diff_image: np.ndarray, std_multiplier: float):
@@ -67,9 +71,12 @@ def flag_whole_cols(
     combo_flags = combo_side_flags(obs_band, std_multiplier)
     counts_per_col = combo_flags.sum(axis=0)
     image_len = obs_band.shape[0]
-    # percent of col that is flagged
-    flag_ratios = (counts_per_col / 2) / image_len
-    # TODO: this warning gets really annoying. maybe dump at the end as a list
+    # flag_ratios is percent of col that is flagged, edge cols only have
+    # one neighbor which is why we divide by n_sides
+    n_sides = np.full(obs_band.shape[1], 2)
+    n_sides[[0, -1]] = 1
+    flag_ratios = (counts_per_col / n_sides) / image_len
+    # this warning gets really annoying. maybe dump at the end as a list
     #  of all cols that had the warning + their percentiles?
     # if np.percentile(flag_ratios, 96) > flag_col_ratio:
     #     print(
@@ -81,20 +88,91 @@ def flag_whole_cols(
     return np.where(flag_ratios > cutoff)[0], flag_ratios
 
 
+def compare_group_to_neighbors(
+        obs_band: np.ndarray,
+        group: np.ndarray,
+        std_multiplier: float,
+        group_test_cols: int = 3,
+):
+    """
+    Use columns neighboring the flagged column groups (groups are flagged
+    columns within a certain number of pixels of each other) as a kind of
+    'normal' threshold. A secondary check to the first flagging pass.
+
+    Meant to resolve the following situations that arise using column diffs:
+        1) sometimes a normal column neighboring a bad column is flagged as
+            'bad' when it is in fact fine vs two neighboring bad cols,
+            especially in target mode
+        2) a column in between two 'bad' columns that is offset from its larger
+            neighborhood vs a column in between two 'bad' columns that is
+            actually normal
+    """
+    n_cols = obs_band.shape[1]
+
+    # get selection of valid neighboring columns with neighborhood size from
+    # group_test_cols
+    left_neighbors = np.arange(group[0] - min(group_test_cols,
+                               group[0]),
+                               group[0]
+                               )
+    right_neighbors = np.arange(group[-1] + 1,
+                                group[-1] + 1 + min(group_test_cols,
+                                n_cols - 1 - group[-1])
+                                )
+    neighbors = np.concatenate([left_neighbors, right_neighbors])
+
+    if neighbors.size < 2:
+        # edge case
+        return None, None
+
+    neighbor_med = np.median(obs_band[:, neighbors], axis=1, keepdims=True)
+    neighbor_offset = obs_band[:, neighbors] - neighbor_med
+    threshold = (abs(np.median(neighbor_offset)) +
+                 np.std(neighbor_offset) * std_multiplier)
+    # get fraction of bad col values and neighbor "normal" values above
+    # threshold
+    secondary_ratios = (abs(obs_band[:, group] - neighbor_med)
+                        > threshold).mean(axis=0)
+    normal_ratio = (abs(neighbor_offset) > threshold).mean()
+
+    return secondary_ratios, normal_ratio
+
+
 def build_bad_col_map(
         obs_image: np.ndarray,
         std_multiplier: float = .5,
-        flag_col_ratio: float = .6
+        flag_col_ratio: float = .6,
+        group_col_gap: int = 2,
+        group_test_cols: int = 3,
 ):
     """
     Build col x band flag map where flagged pixels are 'bad' across most lines
-    of observation. Uses difference between neighboring cols, not ratios.
+    of observation. Uses difference with neighboring cols.
+
+    Most bad columns in M3 data global mode are 1 pixel wide. In Target mode,
+    they are frequently 2 pixels wide. Using column diffs for flagging means
+    there are a few edge cases we need to check for below:
+        1) sometimes a normal column neighboring a bad column is flagged as
+            'bad' when it is in fact fine vs two neighboring bad cols,
+            especially in target mode
+        2) a column in between two 'bad' columns that is offset from its larger
+            neighborhood vs a column in between two 'bad' columns that is
+            actually normal
+
+    Currently, we do not propagate the flagged ratio or specific flagged pixels
+    in each col, but we could in the future.
 
     Args:
         obs_image: Obs image data, could be rdn or DN.
         std_multiplier: Multiplier with std for threshold at which to flag.
         flag_col_ratio: What ratio of pixels in a col should be flagged before
             the col is flagged.
+        group_col_gap: How many cols apart to treat flagged columns as the same
+            'group'. We use this to test for columns that are actually bad and
+            not just the neighbor of a bad column.
+        group_test_cols: How many columns to either side of a merged group of
+            flagged columns to use for testing which cols in the group are
+            actually bad and not just the neighbor of a bad column.
     """
     _, bands, cols = obs_image.shape
     flag_map = np.zeros((bands, cols), dtype=int)
@@ -105,20 +183,47 @@ def build_bad_col_map(
             flag_col_ratio,
             band
         )
-        # make an image of the resulting flag map
-        # could propagate ratios from flag_whole_cols? instead of just 0/1/2
-
-        # adjacent flagged pixels are usually the result of one high contrast
-        # col neighboring two normal ones. we could do something more complex
-        # and expand the diff window and rerun the process, but for now
-        # merely flagging standalone and highest ratio flagged pixels as
-        # 2 ('real' bad pixels) and the neighboring pixels as 1 seems to
-        # suffice
+        # if nothing is flagged for this band, skip the rest of the loop
         if indices.size == 0:
             continue
-        groups = np.split(indices, np.where(np.diff(indices) != 1)[0] + 1)
+
+        obs_band = obs_image[:, band, :]
+
+        # divide the indices into groups of columns based on proximity to each
+        # other, those within group_col_gap pixels of each other are grouped.
+        groups = np.split(
+            indices, np.where(np.diff(indices) > group_col_gap + 1)[0] + 1
+        )
         for group in groups:
+            # set all flagged cols to 1
             flag_map[band, group] = 1
-            # below means default 2 for groups of 1 pixel as a result
-            flag_map[band, group[np.nanargmax(ratios[group])]] = 2
+
+            # get range of cols for each group, special case at detector edge
+            group_start = 0 if group[0] <= group_col_gap else group[0]
+            group_stop = cols if group[-1] >= cols - 1 - group_col_gap else (
+                    group[-1] + 1)
+            group_range = np.arange(group_start, group_stop)
+
+            # get ratio of flagged lines in each col of the group using a wider
+            # neighborhood of nearby columns (group_test_cols is how many
+            # neighboring cols)
+            secondary_ratios, normal_ratio = compare_group_to_neighbors(
+                obs_band=obs_band,
+                group=group_range,
+                std_multiplier=std_multiplier,
+                group_test_cols=group_test_cols
+            )
+
+            # set the 'actually bad' columns in the flag_map as 2 using
+            # secondary_ratios. flag 2 is set at the bitmask level (we
+            # currently ignore 1 flags in flag_map for the bitmask).
+            if secondary_ratios is None:
+                # edge case, use col in a group with the highest ratio flagged
+                real_bad_cols = group[[np.nanargmax(ratios[group])]]
+            else:
+                # use the ratio of 'flagged' pixels within the neighboring
+                # 'normal' cols as a threshold
+                real_bad_cols = group_range[secondary_ratios >
+                                            (normal_ratio + 1) / 2]
+            flag_map[band, real_bad_cols] = 2
     return flag_map
