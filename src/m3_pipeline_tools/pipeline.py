@@ -28,8 +28,10 @@ def run_pipe(
            temperature-dependent gain correction factors.
            verbose: Give me all the info or don't.
     """
-
-    obs_warn, obs_error, metadata = check_observation(obs_id)
+    obs_warn, obs_error, metadata = check_observation(
+        obs_id=obs_id,
+        replace_bad=True,
+    )
     if verbose and len(obs_warn) > 0:
         print("\n".join(obs_warn))
     if len(obs_error) > 0:

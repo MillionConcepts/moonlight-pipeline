@@ -85,8 +85,10 @@ file of the JPL PDS:
      replace version 1.0 of the M3 Level 1B data products delivered in 
      June of 2010.
 
-
-### Bad Data
+`flag_map_target_combo.fits` and `flag_map_global_combo.fits`: New BDE maps derived from the 
+BDE maps of all cold dark signal observations. Contains the most frequently flagged pixels, including 
+those that routinely flash on and off throughout the mission. Used in the pipelines for additional 
+flagging.
 
 #### Illuminated Dark Signal Observations
 Some dark signal observations used for calibration by the mission contain illuminated 

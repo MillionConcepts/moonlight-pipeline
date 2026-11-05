@@ -142,12 +142,12 @@ def build_bad_col_map(
         obs_image: np.ndarray,
         std_multiplier: float = .5,
         flag_col_ratio: float = .6,
-        group_col_gap: int = 2,
+        group_col_gap: int = 0,
         group_test_cols: int = 3,
 ):
     """
     Build col x band flag map where flagged pixels are 'bad' across most lines
-    of observation. Uses difference with neighboring cols.
+    of observation. Uses difference with neighboring cols of observation.
 
     Most bad columns in M3 data global mode are 1 pixel wide. In Target mode,
     they are frequently 2 pixels wide. Using column diffs for flagging means
@@ -223,7 +223,14 @@ def build_bad_col_map(
             else:
                 # use the ratio of 'flagged' pixels within the neighboring
                 # 'normal' cols as a threshold
-                real_bad_cols = group_range[secondary_ratios >
-                                            (normal_ratio + 1) / 2]
+                is_bad = secondary_ratios > (normal_ratio + 1) / 2
+                real_bad_cols = group_range[is_bad]
+                # there are infrequently more than 2 flashing 'bad' pixels
+                # next to each other, drop the lowest secondary_ratio of
+                # group >= 3 in length
+                if len(real_bad_cols) >= 3:
+                    bad_ratios = secondary_ratios[is_bad]
+                    real_bad_cols = np.delete(real_bad_cols,
+                                              np.argmin(bad_ratios))
             flag_map[band, real_bad_cols] = 2
     return flag_map

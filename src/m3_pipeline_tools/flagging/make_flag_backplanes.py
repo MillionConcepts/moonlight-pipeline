@@ -214,7 +214,10 @@ def make_mission_l1b_flag_backplane(
 
     # Set up paths and check observation for issues with flag maps,
     # data availability, etc
-    obs_warn, obs_error, metadata = check_observation(obs_id)
+    obs_warn, obs_error, metadata = check_observation(
+        obs_id=obs_id,
+        replace_bad=False
+    )
     if verbose and len(obs_warn) > 0:
         print("\n".join(obs_warn))
     if len(obs_error) > 0:

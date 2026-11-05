@@ -58,7 +58,11 @@ def pull_metadata(obs_id: str, cal_dir: Optional[str] = None) \
     return metadata
 
 
-def check_observation(obs_id: str, local_root: Optional[str] = None):
+def check_observation(
+        obs_id: str,
+        local_root: Optional[str] = None,
+        replace_bad: bool = False,
+):
     """
     Check that the input observation string matches the expected format & load
     info we have on it from the latest version of its L1B files
@@ -69,8 +73,14 @@ def check_observation(obs_id: str, local_root: Optional[str] = None):
     obs and therefore should not be processed in this way, or they had issues
     (extremely hot etc.). These will return an error and empty dict.
 
-    Basic obs format: M3MYYYYMMDDTHHMMSS, ex: m3g20090720t214000
-
+    Args:
+        obs_id: string with basic obs format: M3MYYYYMMDDTHHMMSS,
+            ex: m3g20090720t214000
+        local_root: where the processing metadata is stored, if different
+            from default in the CAL dir.
+        replace_bad: If true, replaces known bad calibration files with an
+            alternative. Affects a small number of observations, should set
+            true in processing pipelines and false in L1B flagging.
     Returns (warnings, errors, metadata).
     """
     obs_warn: list[str] = []
@@ -91,26 +101,27 @@ def check_observation(obs_id: str, local_root: Optional[str] = None):
 
     # check that this isn't a bad BDE / dark / flat, usually from during the
     # broken star tracker period
-    if metadata['bad_dark']:
-        obs_warn.append(f"This has been flagged as a bad dark obs, "
-                        f"{metadata['dark_id']}. Replacing with "
-                        f"{metadata['replacement_dark_id']}.")
-        metadata['dark_id'] = metadata['replacement_dark_id']
-    if metadata['bad_flat']:
-        obs_warn.append(f"This has been flagged as a bad flat field obs, "
-                        f"{metadata['flat_id']}.")
-    if metadata['bad_bde']:
-        obs_warn.append(f"This has been flagged as a bad BDE map, "
-                        f"{metadata['bde_id']}. Replacing with "
-                        f"{metadata['replacement_dark_id']}.")
-        metadata['bde_id'] = metadata['replacement_dark_id']
-    # if the dark used for L1B processing isn't the closest, warn the user
-    if not metadata['dark_matches_closest']:
-        obs_warn.append(f"The dark used for this obs, {metadata['dark_id']}, "
-                        f"is not the closest dark temporally, "
-                        f"{metadata['closest_dark']} "
-                        f"({metadata['closest_dark_gap_min']:.1f} min away, "
-                        f" and {metadata['closest_dark_temp']:.2f} K).")
+    if replace_bad:
+        if metadata['bad_dark']:
+            obs_warn.append(f"This has been flagged as a bad dark obs, "
+                            f"{metadata['dark_id']}. Replacing with "
+                            f"{metadata['replacement_dark_id']}.")
+            metadata['dark_id'] = metadata['replacement_dark_id']
+        if metadata['bad_flat']:
+            obs_warn.append(f"This has been flagged as a bad flat field obs, "
+                            f"{metadata['flat_id']}.")
+        if metadata['bad_bde']:
+            obs_warn.append(f"This has been flagged as a bad BDE map, "
+                            f"{metadata['bde_id']}. Replacing with "
+                            f"{metadata['replacement_dark_id']}.")
+            metadata['bde_id'] = metadata['replacement_dark_id']
+        # if the dark used for L1B processing isn't the closest, warn the user
+        if not metadata['dark_matches_closest']:
+            obs_warn.append(f"The dark used for this obs, {metadata['dark_id']}, "
+                            f"is not the closest dark temporally, "
+                            f"{metadata['closest_dark']} "
+                            f"({metadata['closest_dark_gap_min']:.1f} min away, "
+                            f" and {metadata['closest_dark_temp']:.2f} K).")
 
     # temperature differences between the obs and its flat and dark
     # this temp is from the L1B V03 LBLs. Other temps are recorded in various

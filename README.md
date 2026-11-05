@@ -41,10 +41,8 @@ release of L1B and L2 processing pipelines.
 ## Storage & Required Files
 The Moonlight Pipeline repository is designed to work with the [PDS4 release of M3 data](https://pdsimage2.wr.usgs.gov/Chandrayaan_1/),
 where most observational and calibration data were delivered as FITS files. All files 
-required to run the pipelines are available at the PDS. 
-
-Some metadata from the PDS has been compiled for ease of use and is stored in the cal folder: 
-[cal_data folder](./src/m3_pipeline_tools/cal_data/). See the [cal_data README](./src/m3_pipeline_tools/cal_data/README.md) for more information.
+required to run the pipelines are available at the PDS. Metadata from the PDS has been compiled 
+for ease of use and is stored in the cal folder: [cal_data folder](./src/m3_pipeline_tools/cal_data/).
 
 Required files for flagging are discussed in [Comprehensive Flagging](./tutorials/tutorial3_comprehensive_flagging.ipynb).
 Required files for L0 to L1B processing are discussed in [Running Pipelines](./tutorials/tutorial5_running_pipelines.ipynb).
@@ -53,6 +51,13 @@ M3 observational data can be large. L1B (radiance) and L2 (reflectance) output f
 double the size of the L0 observational data. Larger L1B and L2 products can be 3+ GB.
 Necessary calibration files (BDE maps and flat fields) for each observation are small 
 (<700 KB). Dark signal observations are ~15 MB for Global Mode and ~160 MB for Target.
+
+
+## Mission Calibration Files
+See the [cal_data README](./src/m3_pipeline_tools/cal_data/README.md) for a discussion of calibration files modified from the mission calibration 
+files on the PDS. Additionally, the [cal_data README](./src/m3_pipeline_tools/cal_data/README.md) discusses data quality issues within
+a subset of dark signal observations and their derived calibration files. 
+
 
 ## Dependencies
 Moonlight Pipeline requires Python>=3.15.
