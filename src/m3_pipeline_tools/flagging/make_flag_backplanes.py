@@ -272,8 +272,8 @@ def make_mission_l1b_flag_backplane(
                     print(f"{name} not found: {p}. We cannot flag spectrally "
                           f"interpolated values.")
                 if name == "additional_flag_path":
-                    print("Additional flag map is missing from cal folder. "
-                          "Weird!")
+                    print(f"{name} not found: {p}. Additional flag map is"
+                          f" missing from cal folder. Weird!")
             # false if path doesn't exist
             paths[name] = False
 
