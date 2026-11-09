@@ -13,6 +13,8 @@ below is copied from the Comprehensive Flagging tutorial._
 | NO_FLICKER    | 16    | `00010000` | bit 4        | Bad-group column, no flicker on this line         |
 | FLICKER_BUMP  | 32    | `00100000` | bit 5        | Flickers brighter than neighbors                  |
 | FLICKER_DROP  | 64    | `01000000` | bit 6        | Flickers darker than neighbors                    |
+| COMMON_BAD  | 128    | `10000000` | bit 7        | Always bad pixels in cold obs.                     |
+
 
 ### Flag 1: L2 Deprecated
 
@@ -98,3 +100,13 @@ Additionally, at the L1B level, flickering groups have already been modified by 
 fielding. Flat fielding
 the flickering columns isn't really the correct calibration behaviour because flicker is 1) additive to the background
 signal and 2) temporally variable. 
+
+### Flags 128: Frequently Bad Pixels (Combined BDE Maps) 
+
+The final flag will be the same set of pixels for all global observations and the same set of pixels for all target observations. 
+
+By combining the pixels always flagged in cold (<150 K) mission-produced BDE maps, we got a set of the most frequent bad pixels throughout the mission. Using this flag more effectively filters out reoccuring bad pixels than the observation-level BDE map, especially at higher temperatures. 
+
+__If `flag 4` has not been set for these pixels, they have not been spectrally interpolated by the mission. We are merely indicating they _may_ be bad.__
+
+__Currently we only set this flag for post-L1B flagging on pre-existing observational data.__
