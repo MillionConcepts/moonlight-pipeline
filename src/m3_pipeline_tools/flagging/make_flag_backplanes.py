@@ -17,7 +17,8 @@ BAD_COL = 8       # bit 3, pixels part of a column offset from its neighbors
 NO_FLICKER = 16   # bit 4, bad-group column, no flicker on this line
 FLICKER_BUMP = 32 # bit 5, flickers brighter than neighbors
 FLICKER_DROP = 64 # bit 6, flickers darker than neighbors
-# FLAGS REMAINING:  128 / bit 7
+COMMON_BAD = 128 # bit 7, pixels that are frequently bad but not necessarily
+                 # flagged in this iteration
 
 # Description mostly for writing to FITS header
 FLAG_DICT = [
@@ -27,7 +28,8 @@ FLAG_DICT = [
     ("FLG_DEP",  L2_DEPRECATED, "Deprecated by mission in L2"),
     ("FLG_FG",   NO_FLICKER,    "Flicker cols without offset"),
     ("FLG_BUMP", FLICKER_BUMP,  "Flicker brighter"),
-    ("FLG_DROP", FLICKER_DROP,  "Flicker darker")
+    ("FLG_DROP", FLICKER_DROP,  "Flicker darker"),
+    ("FLG_FREQ", COMMON_BAD, "Frequently bad"),
 ]
 
 
@@ -114,7 +116,7 @@ def flag_l1b(
     From L1B data, and optionally L0 data and mission BDE files, build an
     L1B-shaped flag map.
 
-    dict paths keys: "l0_path", "l1b_path",  "flag_path"
+    dict paths keys: "l0_path", "l1b_path", "flag_path", "additional_flag_path"
     """
     from astropy.io import fits
     from ..utils.loader import (load_fits_into_frame, load_bde_map,
@@ -160,6 +162,20 @@ def flag_l1b(
             omitted_channels=omitted_channels
         )
         flags |= _bit(bde_map > 0, BDE)[np.newaxis, :, :]
+        del bde_map
+
+    if paths['additional_flag_path']:
+        # Need to load and trim / orient to L1B s
+        additional_bde_map = load_bde_map(paths['additional_flag_path'])
+        additional_bde_map = orient_and_trim_to_l1b(
+            input_array=additional_bde_map,
+            left_col_cutoff=left_col_cutoff,
+            right_col_cutoff=right_col_cutoff,
+            reverse_samples=reverse_samples,
+            omitted_channels=omitted_channels
+        )
+        flags |= _bit(additional_bde_map > 0, COMMON_BAD)[np.newaxis, :, :]
+        del additional_bde_map
 
     # flagging for the following bits requires the L1B data
     obs_image = load_fits_into_frame(paths['l1b_path'])
@@ -237,6 +253,7 @@ def make_mission_l1b_flag_backplane(
         "l0_path": moonager.l0_path,
         "l1b_path": moonager.l1b_rdn_path,
         "flag_path": moonager.flag_path,
+        "additional_flag_path": moonager.additional_flag_path,
     }
     for name, p in paths.items():
         if not p.is_file():
@@ -254,6 +271,9 @@ def make_mission_l1b_flag_backplane(
                     # also the BDE file is smaller than the dark L0 files.
                     print(f"{name} not found: {p}. We cannot flag spectrally "
                           f"interpolated values.")
+                if name == "additional_flag_path":
+                    print("Additional flag map is missing from cal folder. "
+                          "Weird!")
             # false if path doesn't exist
             paths[name] = False
 
