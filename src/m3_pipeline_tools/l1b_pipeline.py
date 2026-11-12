@@ -35,7 +35,7 @@ def run_l1b_mission_pipeline(moonager: PipeManager):
         (moonager.l0_channels, moonager.l0_samples),
         'loading l0 obs data'
     )
-    obs_image[obs_image < 0] = np.nan
+    obs_image[obs_image <= moonager.l0_min_cutoff] = np.nan
 
     # (1) Dark Signal Subtraction
     if moonager.verbose:
@@ -292,7 +292,7 @@ def run_l1b_new_pipeline(moonager: PipeManager):
         (moonager.l0_channels, moonager.l0_samples),
         'loading l0 obs data'
     )
-    obs_image[obs_image < 0] = np.nan
+    obs_image[obs_image <= moonager.l0_min_cutoff] = np.nan
 
     # (1) Dark Signal Subtraction
     if moonager.verbose:

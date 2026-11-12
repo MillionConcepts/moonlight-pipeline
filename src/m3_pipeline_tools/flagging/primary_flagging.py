@@ -103,7 +103,7 @@ def call_build_bde_mask(obs_id: str, local_root: str = "data",):
                           )
 
 
-def get_l0_negative_flags(l0_path: Path):
+def get_l0_negative_flags(l0_path: Path, l0_min_cutoff: float):
     """
     Load L0, identify negative pixels, return obs as a bool array where
     True = negative in L1B shape and orientation.
@@ -111,4 +111,4 @@ def get_l0_negative_flags(l0_path: Path):
     from ..utils.loader import load_fits_into_frame
 
     l0 = load_fits_into_frame(l0_path)
-    return l0 < 0
+    return l0 <= l0_min_cutoff

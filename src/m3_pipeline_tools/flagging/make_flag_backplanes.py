@@ -111,6 +111,7 @@ def flag_l1b(
         l1b_samples: int,
         l1b_flicker_bands: slice,
         deprecated_channels: list[int],
+        l0_min_cutoff: float,
 ):
     """
     From L1B data, and optionally L0 data and mission BDE files, build an
@@ -140,7 +141,10 @@ def flag_l1b(
     # Flag NaN in obs, set to NaN because of negative values in L0
     if paths['l0_path']:
         # Must load L0, flag negative, and then trim and orient correctly
-        flags = get_l0_negative_flags(l0_path=paths['l0_path'])
+        flags = get_l0_negative_flags(
+            l0_path=paths['l0_path'],
+            l0_min_cutoff=l0_min_cutoff
+        )
         flags = _bit(flags == True, NAN)
         flags = orient_and_trim_to_l1b(
             input_array=flags,
@@ -287,4 +291,5 @@ def make_mission_l1b_flag_backplane(
         l1b_samples=moonager.l1b_samples,
         l1b_flicker_bands=moonager.l1b_flicker_bands,
         deprecated_channels=moonager.degraded_channels,
+        l0_min_cutoff=moonager.l0_min_cutoff,
     )

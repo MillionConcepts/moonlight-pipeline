@@ -295,6 +295,7 @@ class PipeManager:
             }
             self.l0_flicker_bands = slice(6,8)
             self.l1b_flicker_bands = slice(3,5)
+            self.l0_min_cutoff = 0
 
 
         elif self.mode.upper() == 'G':
@@ -325,6 +326,7 @@ class PipeManager:
             }
             self.l0_flicker_bands = slice(2,3)
             self.l1b_flicker_bands = slice(1,2)
+            self.l0_min_cutoff = 341.25 # 4095 max 12 bit / 12 pix compression
 
         # L1B -> L2 related calibration files
         # some of these are both mode and time / date dependant
